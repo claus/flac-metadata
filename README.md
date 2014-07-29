@@ -113,7 +113,6 @@ var reader = fs.createReadStream("source.flac");
 var writer = fs.createWriteStream("target.flac");
 var processor = new flac.Processor();
 
-var mdbVorbis;
 var vendor = "reference libFLAC 1.2.1 20070917";
 var comments = [
   "ARTIST=Boyracer",
