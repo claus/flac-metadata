@@ -10,7 +10,7 @@ A FLAC metadata processor for Node.js, implemented as Transform stream.
 
 Some simple examples to get you started:
 
-### Noop
+#### Noop
 
 Does nothing, just pipes a source FLAC through the Processor into a target FLAC.
 
@@ -25,7 +25,7 @@ var processor = new flac.Processor();
 reader.pipe(processor).pipe(writer);
 ```
 
-### Trace Metadata
+#### Trace Metadata
 
 Traces out the metadata from a FLAC file.
 
@@ -77,7 +77,7 @@ The output should be something like this:
   pictureData: 391383
 ```
 
-### Strip All Metadata
+#### Strip All Metadata
 
 Pipes a source FLAC through the Processor into a target FLAC, removing all metadata.
 
@@ -95,6 +95,50 @@ processor.on("preprocess", function(mdb) {
     // When a metadata block's isLast flag is set to true in preprocess,
     // subsequent blocks are automatically discarded.
     mdb.isLast = true;
+  }
+});
+
+reader.pipe(processor).pipe(writer);
+```
+
+#### Inject Metadata
+
+Injects a VORBIS_COMMENT block (and removes the existing one, if any).
+
+```js
+var fs = require("fs");
+var flac = require("flac-metadata");
+
+var reader = fs.createReadStream("source.flac");
+var writer = fs.createWriteStream("target.flac");
+var processor = new flac.Processor();
+
+var mdbVorbis;
+var vendor = "reference libFLAC 1.2.1 20070917";
+var comments = [
+  "ARTIST=Boyracer",
+  "TITLE=I've Got It And It's Not Worth Having",
+  "ALBUM=B Is For Boyracer",
+  "TRACKNUMBER=A1",
+  "DATE=1993"
+];
+
+processor.on("preprocess", function(mdb) {
+  // Remove existing VORBIS_COMMENT block, if any.
+  if (mdb.type === flac.Processor.MDB_TYPE_VORBIS_COMMENT) {
+    mdb.remove();
+  }
+  // Prepare to add new VORBIS_COMMENT block as last metadata block.
+  if (mdb.isLast) {
+    mdb.isLast = false;
+    mdbVorbis = flac.data.MetaDataBlockVorbisComment.create(true, vendor, comments);
+  }
+});
+
+processor.on("postprocess", function(mdb) {
+  if (mdbVorbis) {
+    // Add new VORBIS_COMMENT block as last metadata block.
+    this.push(mdbVorbis.publish());
   }
 });
 
