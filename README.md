@@ -120,7 +120,8 @@ var comments = [
   "TITLE=I've Got It And It's Not Worth Having",
   "ALBUM=B Is For Boyracer",
   "TRACKNUMBER=A1",
-  "DATE=1993"
+  "DATE=1993",
+  "DISCOGS=22379"
 ];
 
 processor.on("preprocess", function(mdb) {
@@ -128,16 +129,9 @@ processor.on("preprocess", function(mdb) {
   if (mdb.type === flac.Processor.MDB_TYPE_VORBIS_COMMENT) {
     mdb.remove();
   }
-  // Prepare to add new VORBIS_COMMENT block as last metadata block.
-  if (mdb.isLast) {
-    mdb.isLast = false;
-    mdbVorbis = flac.data.MetaDataBlockVorbisComment.create(true, vendor, comments);
-  }
-});
-
-processor.on("postprocess", function(mdb) {
-  if (mdbVorbis) {
-    // Add new VORBIS_COMMENT block as last metadata block.
+  // Inject new VORBIS_COMMENT block.
+  if (mdb.removed || mdb.isLast) {
+    var mdbVorbis = flac.data.MetaDataBlockVorbisComment.create(mdb.isLast, vendor, comments);
     this.push(mdbVorbis.publish());
   }
 });
